@@ -1,0 +1,196 @@
+---
+title: "Statistical Modelling project"
+output: html_notebook
+---
+
+
+
+```{r}
+library(JM)  
+library(ggplot2)
+library(dplyr)  
+library(geepack)  # For GEE model
+library(survival) 
+library(survminer) 
+```
+
+```{r}
+install.packages("JM")
+data(package="JM")
+```
+
+```{r}
+aids.id
+```
+
+
+```{r}
+aidsdf2 <- data.frame(aids.id)
+head(aidsdf2)
+```
+
+```{r}
+str(aidsdf2)
+```
+
+```{r}
+# Check for missing values
+colSums(is.na(aidsdf2))
+```
+
+
+```{r}
+#converting to factors
+aidsdf2 <- aids %>%
+  mutate(across(where(is.factor), as.character)) %>%
+  mutate(
+    patient = as.factor(patient),
+    death = as.factor(death),
+    obstime = as.numeric(as.character(obstime)),  # Convert obstime to numeric for modeling
+    drug = as.factor(drug),
+    gender = as.factor(gender),
+    prevOI = as.factor(prevOI),
+    AZT = as.factor(AZT),
+    death = as.factor(death)
+  )
+```
+
+
+```{r}
+summary(aidsdf2$CD4)
+summary(aidsdf2$Time)
+summary(aidsdf2$stop)
+```
+
+```{r}
+table(aidsdf2$drug)
+table(aidsdf2$gender)
+table(aidsdf2$prevOI)
+table(aidsdf2$death)
+```
+```{r}
+ggplot(aidsdf2, aes(x = CD4)) + 
+  geom_histogram(binwidth = 5, fill = "skyblue", color = "black") + 
+  labs(title = "CD4 Count Distribution")
+```
+
+
+```{r}
+ggplot(aidsdf2,aes(x=drug,fill = death))+
+  geom_bar(position = "dodge",color = "black")+
+  labs(title = "Drug Group Distribution by Death")+
+  theme_minimal()
+
+```
+
+
+```{r}
+ggplot(aidsdf2, aes(x = obstime, group = patient, y = CD4, color = prevOI)) + 
+  geom_line(alpha = 0.6) + 
+  labs(title = "CD4 Count Over Time by ", x = "Observation Time", y = "CD4 Count")
+
+#people with AIDS have lower cd4 cell count 
+```
+
+
+
+```{r}
+# Fit a Cox proportional hazards model
+cox_model <- coxph(Surv(stop, event) ~ drug + gender + prevOI + AZT, data = aidsdf2)
+
+summary(cox_model)
+
+```
+
+
+```{r}
+# Kaplan-Meier survival curve
+km_fit <- survfit(Surv(stop, event) ~ drug, data = aidsdf2)
+
+ggsurvplot(km_fit, data = aidsdf2,
+           pval = TRUE, conf.int = TRUE, 
+           risk.table = TRUE,
+           conf.int.style = "default",   # Use default confidence interval (log transformation)
+           xlab = "Time (months)",       
+           ylab = "Survival Probability",
+           ggtheme = theme_minimal(),
+           title = "Kaplan-Meier Survival Curves by Drug Group")
+
+```
+
+
+```{r}
+# Kaplan-Meier survival curve
+km_fit <- survfit(Surv(stop, event) ~ prevOI, data = aidsdf2)
+
+ggsurvplot(km_fit, data = aidsdf2,
+           pval = TRUE, conf.int = TRUE, 
+           risk.table = TRUE,
+           conf.int.style = "default",   # Use default confidence interval (log transformation)
+           xlab = "Time (months)",       
+           ylab = "Survival Probability",
+           ggtheme = theme_minimal(),
+           title = "Kaplan-Meier Survival Curves by PrevOI")
+
+```
+```{r}
+# Kaplan-Meier survival curve
+km_fit <- survfit(Surv(stop, event) ~ gender, data = aidsdf2)
+
+ggsurvplot(km_fit, data = aidsdf2,
+           pval = TRUE, conf.int = TRUE, 
+           risk.table = TRUE,
+           conf.int.style = "default",   # Use default confidence interval (log transformation)
+           xlab = "Time (months)",       
+           ylab = "Survival Probability",
+           ggtheme = theme_minimal(),
+           title = "Kaplan-Meier Survival Curves by Gender Group")
+
+
+```
+
+
+```{r}
+
+library(survival)
+library(survminer)
+
+# Fit the Kaplan-Meier survival model for drug groups
+km_fit <- survfit(Surv(stop, event) ~ gender, data = aidsdf2)
+
+# Plot log cumulative hazard using ggsurvplot
+ggsurvplot(km_fit, 
+           data = aidsdf2, 
+           fun = "cloglog",            
+           pval = TRUE,                 # Display p-value for log-rank test
+           conf.int.style = "default",             # Show confidence intervals
+           xlab = "Time (months)",      
+           ylab = "Log Cumulative Hazard", 
+           title = "Log Cumulative Hazard by Gender", 
+           ggtheme = theme_minimal())   
+
+```
+
+
+```{r}
+# Load necessary library
+library(survival)
+
+# Fit Cox proportional hazards model
+cox_model <- coxph(Surv(start, stop, event) ~ drug + prevOI + gender + AZT, data = aidsdf2)
+
+# Summary of the model
+summary(cox_model)
+
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+```
+
